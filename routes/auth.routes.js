@@ -12,7 +12,9 @@ router.get('/google',
 // @route   GET /api/auth/google/callback
 // @desc    Google OAuth callback
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login` 
+  }),
   (req, res) => {
     // Generate JWT
     const token = jwt.sign(
@@ -22,7 +24,8 @@ router.get('/google/callback',
     );
 
     // Redirect to frontend with token
-    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
 );
 
