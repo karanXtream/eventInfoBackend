@@ -10,16 +10,24 @@ const Event = require('../models/Event');
 router.get('/', async (req, res) => {
   try {
     const {
-      city = 'Sydney',
+      city,
       status,
       keyword,
       startDate,
       endDate
     } = req.query;
 
-    const query = { city };
+    const query = {};
 
-    if (status) query.status = status;
+    // Only filter by city if specified
+    if (city) query.city = city;
+    
+    // Default: show new and updated events (not inactive or imported)
+    if (status) {
+      query.status = status;
+    } else {
+      query.status = { $in: ['new', 'updated'] };
+    }
 
     if (keyword) {
       query.$or = [
@@ -35,15 +43,20 @@ router.get('/', async (req, res) => {
       if (endDate) query.dateTime.$lte = new Date(endDate);
     }
 
+    console.log('Events query:', JSON.stringify(query));
+    
     const events = await Event.find(query)
       .sort({ dateTime: 1 })
       .limit(100);
+
+    console.log(`Found ${events.length} events`);
 
     res.json({
       count: events.length,
       events
     });
   } catch (err) {
+    console.error('Error fetching events:', err);
     res.status(500).json({
       error: 'Failed to fetch events',
       details: err.message
