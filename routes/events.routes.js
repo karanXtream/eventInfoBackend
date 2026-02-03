@@ -3,6 +3,28 @@ const router = express.Router();
 const Event = require('../models/Event');
 
 /**
+ * GET /api/events/debug
+ * Debug endpoint to see all events and their statuses
+ */
+router.get('/debug', async (req, res) => {
+  try {
+    const totalCount = await Event.countDocuments();
+    const statusCounts = await Event.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+    const sample = await Event.findOne();
+    
+    res.json({
+      totalEvents: totalCount,
+      statusBreakdown: statusCounts,
+      sampleEvent: sample
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/events
  * Public listing
  * Filters: city, status, keyword, date range
@@ -22,11 +44,10 @@ router.get('/', async (req, res) => {
     // Only filter by city if specified
     if (city) query.city = city;
     
-    // Default: show new and updated events (not inactive or imported)
+    // If status is explicitly provided, use it
+    // Otherwise, show ALL events (removed default filter)
     if (status) {
       query.status = status;
-    } else {
-      query.status = { $in: ['new', 'updated'] };
     }
 
     if (keyword) {
